@@ -1,0 +1,7 @@
+com\novabank\cliente\ClienteServiceApplication.class
+com\novabank\cliente\exception\ClienteNotFoundException.class
+com\novabank\cliente\dto\ClienteDTO.class
+com\novabank\cliente\service\ClienteService.class
+com\novabank\cliente\controller\ClienteController.class
+com\novabank\cliente\model\Cliente.class
+com\novabank\cliente\repository\ClienteRepository.class
