@@ -10,3 +10,5 @@ spring:
         git:
           uri: file:///C:/Users/alopsalv/CasosPracticos/novabank-config-repo
           default-label: main
+          clone-on-start: true
+          force-pull: true
