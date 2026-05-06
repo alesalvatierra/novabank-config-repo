@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: cliente-service
+          uri: lb://cliente-service
+          predicates:
+            - Path=/api/clientes/**
+          filters:
+            - JwtAuthenticationFilter
+
+        - id: cuenta-service
+          uri: lb://cuenta-service
+          predicates:
+            - Path=/api/cuentas/**
+          filters:
+            - JwtAuthenticationFilter
+
+        - id: operacion-service
+          uri: lb://operacion-service
+          predicates:
+            - Path=/api/operaciones/**
+          filters:
+            - JwtAuthenticationFilter
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

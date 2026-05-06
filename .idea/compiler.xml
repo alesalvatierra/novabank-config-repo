@@ -9,6 +9,8 @@
         <outputRelativeToContentRoot value="true" />
         <module name="config-server" />
         <module name="cliente-service" />
+        <module name="auth-server" />
+        <module name="api-gateway" />
         <module name="operacion-service" />
         <module name="eureka-server" />
         <module name="cuenta-service" />
@@ -17,6 +19,8 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="api-gateway" options="-parameters" />
+      <module name="auth-server" options="-parameters" />
       <module name="cliente-service" options="-parameters" />
       <module name="config-server" options="-parameters" />
       <module name="cuenta-service" options="-parameters" />
