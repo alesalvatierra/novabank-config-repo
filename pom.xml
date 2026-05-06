@@ -65,9 +65,10 @@
         <module>cuenta-service</module>
         <!--        <module>api-gateway</module>-->
 <!--        <module>auth-server</module>-->
-<!--        <module>cliente-service</module>-->
-<!--        <module>cuenta-service</module>-->
-<!--        <module>operacion-service</module>-->
+        <module>cliente-service</module>
+        <module>cuenta-service</module>
+        <module>operacion-service</module>
+        <!--        <module>operacion-service</module>-->
     </modules>
 
     <dependencyManagement>

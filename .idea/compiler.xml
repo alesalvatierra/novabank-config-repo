@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="config-server" />
         <module name="cliente-service" />
+        <module name="operacion-service" />
         <module name="eureka-server" />
         <module name="cuenta-service" />
       </profile>
@@ -21,6 +22,7 @@
       <module name="cuenta-service" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
       <module name="novabank-microservices" options="-parameters" />
+      <module name="operacion-service" options="-parameters" />
     </option>
   </component>
 </project>
