@@ -16,16 +16,23 @@ spring:
           uri: lb://cliente-service
           predicates:
             - Path=/api/clientes/**
+          filters:
+            - JwtAuthenticationFilter
 
         - id: cuenta-service
           uri: lb://cuenta-service
           predicates:
             - Path=/api/cuentas/**
+          filters:
+            - JwtAuthenticationFilter
 
         - id: operacion-service
           uri: lb://operacion-service
           predicates:
             - Path=/api/operaciones/**
+          filters:
+            - JwtAuthenticationFilter
+
 
 eureka:
   client:
