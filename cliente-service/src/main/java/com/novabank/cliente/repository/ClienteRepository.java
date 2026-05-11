@@ -1,14 +1,13 @@
 package com.novabank.cliente.repository;
 
 import com.novabank.cliente.model.Cliente;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 @Repository
-public interface ClienteRepository extends JpaRepository<Cliente, Long> {
+public interface ClienteRepository extends ReactiveCrudRepository<Cliente, Long> {
 
-    Optional<Cliente> findByDni(String dni);
-    Optional<Cliente> findByEmail(String email);
+    Mono<Cliente>findByDni(String dni);
+    Mono<Cliente> findByEmail(String email);
 }
