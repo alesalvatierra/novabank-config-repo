@@ -1,43 +1,46 @@
 package com.novabank.cuenta.controller;
 
 import com.novabank.cuenta.model.Cuenta;
-import com.novabank.cuenta.repository.CuentaRepository;
+import com.novabank.cuenta.model.Movimiento;
 import com.novabank.cuenta.service.CuentaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/cuentas")
 @RequiredArgsConstructor
 public class CuentaController {
 
-    // Inyectamos el servicio que acabamos de crear
     private final CuentaService cuentaService;
 
-    @Autowired
-    private CuentaRepository cuentaRepository;
-
-    @GetMapping
-    public List<Cuenta> listarCuentas() {
-        return cuentaRepository.findAll();
-    }
-
     @PostMapping
-    public Cuenta crearCuenta(@RequestBody Cuenta cuenta) {
-        return cuentaRepository.save(cuenta);
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<Cuenta> crear(@RequestBody Cuenta cuenta) {
+        return cuentaService.crearCuenta(cuenta);
     }
 
-    //Añadimos el endpoint para actualizar el saldo
-    @PutMapping("/{id}/saldo")
-    public ResponseEntity<Void> actualizarSaldo(
-            @PathVariable Long id,
-            @RequestParam Double monto) {
+    @GetMapping("/{id}")
+    public Mono<Cuenta> obtener(@PathVariable Long id) {
+        return cuentaService.obtenerCuenta(id);
+    }
 
-        cuentaService.actualizarSaldo(id, monto);
-        return ResponseEntity.ok().build();
+    @PutMapping("/{id}/saldo")
+    public Mono<Cuenta> actualizarSaldo(@PathVariable Long id, @RequestParam Double monto) {
+        return cuentaService.actualizarSaldo(id, monto);
+    }
+
+    @PostMapping("/movimientos")
+    public Mono<Movimiento> registrarMovimiento(@RequestBody Movimiento movimiento) {
+        return cuentaService.registrarMovimiento(movimiento);
+    }
+
+    //ENDPOINT DE STREAMING
+    @GetMapping(value = "/movimientos/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Movimiento> verMovimientosEnDirecto() {
+        return cuentaService.obtenerStreamMovimientos();
     }
 }

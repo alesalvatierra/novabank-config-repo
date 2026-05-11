@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="config-server" />
         <module name="cliente-service" />
+        <module name="exchange-rate-mock-service" />
         <module name="auth-server" />
         <module name="api-gateway" />
         <module name="operacion-service" />
@@ -25,6 +26,7 @@
       <module name="config-server" options="-parameters" />
       <module name="cuenta-service" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
+      <module name="exchange-rate-mock-service" options="-parameters" />
       <module name="novabank-microservices" options="-parameters" />
       <module name="operacion-service" options="-parameters" />
     </option>

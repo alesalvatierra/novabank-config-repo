@@ -1,63 +1,64 @@
 package com.novabank.cuenta.service;
 
-import com.novabank.cuenta.client.ClienteClient;
 import com.novabank.cuenta.model.Cuenta;
 import com.novabank.cuenta.model.Movimiento;
 import com.novabank.cuenta.repository.CuentaRepository;
 import com.novabank.cuenta.repository.MovimientoRepository;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 @Service
-@RequiredArgsConstructor
 public class CuentaService {
 
     private final CuentaRepository cuentaRepository;
-    private final ClienteClient clienteClient;
     private final MovimientoRepository movimientoRepository;
+    private final WebClient.Builder webClientBuilder;
 
-    @Transactional
-    @CircuitBreaker(name = "clienteServiceCB", fallbackMethod = "fallbackCrearCuenta")
-    public Cuenta crearCuenta(Cuenta cuenta) {
-        //Validar que el cliente existe llamando al microservicio de clientes
-        try {
-            clienteClient.obtenerCliente(cuenta.getClienteId());
-        } catch (Exception e) {
-            throw new RuntimeException("No se puede crear la cuenta: El cliente con ID " + cuenta.getClienteId() + " no existe.");
-        }
+    private final Sinks.Many<Movimiento> movimientosSink;
 
-        //Si el cliente es válido, guardamos la cuenta
-        return cuentaRepository.save(cuenta);
+    public CuentaService(CuentaRepository cuentaRepository, MovimientoRepository movimientoRepository, WebClient.Builder webClientBuilder) {
+        this.cuentaRepository = cuentaRepository;
+        this.movimientoRepository = movimientoRepository;
+        this.webClientBuilder = webClientBuilder;
+        this.movimientosSink = Sinks.many().multicast().onBackpressureBuffer();
     }
 
-    // Método de rescate (Fallback) si el cliente-service falla
-    public Cuenta fallbackCrearCuenta(Cuenta cuenta, Throwable t) {
-        throw new RuntimeException("Servicio de validación temporalmente inactivo. No se puede verificar al cliente en este momento.");
+    public Mono<Cuenta> crearCuenta(Cuenta cuenta) {
+        // Llamada no bloqueante al cliente-service usando WebClient
+        return webClientBuilder.build()
+                .get()
+                .uri("http://cliente-service/api/clientes/" + cuenta.getClienteId())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, response -> Mono.error(new IllegalArgumentException("El cliente no existe")))
+                .bodyToMono(Object.class)
+                .flatMap(cliente -> cuentaRepository.save(cuenta));
     }
 
-    @Transactional
-    public void actualizarSaldo(Long id, Double monto) {
-        Cuenta cuenta = cuentaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cuenta con ID " + id + " no encontrada"));
+    public Mono<Cuenta> obtenerCuenta(Long id) {
+        return cuentaRepository.findById(id)
+                .switchIfEmpty(Mono.error(new RuntimeException("Cuenta no encontrada")));
+    }
 
-        Double nuevoSaldo = cuenta.getSaldo() + monto;
+    public Mono<Movimiento> registrarMovimiento(Movimiento movimiento) {
+        // Guardamos el movimiento y luego lo emitimos por el Sink
+        return movimientoRepository.save(movimiento)
+                .doOnNext(movimientosSink::tryEmitNext);
+    }
 
-        if (nuevoSaldo < 0) {
-            throw new RuntimeException("La operación resultaría en un saldo negativo");
-        }
+    public Mono<Cuenta> actualizarSaldo(Long cuentaId, Double monto) {
+        return obtenerCuenta(cuentaId)
+                .flatMap(cuenta -> {
+                    cuenta.setSaldo(cuenta.getSaldo() + monto);
+                    return cuentaRepository.save(cuenta);
+                });
+    }
 
-        //Actualizamos el saldo de la cuenta
-        cuenta.setSaldo(nuevoSaldo);
-        cuentaRepository.save(cuenta);
-
-        //Registramos el movimiento en el historial (Auditoría)
-        Movimiento movimiento = new Movimiento();
-        movimiento.setCuentaId(id);
-        movimiento.setMonto(monto);
-        movimiento.setSaldoDespues(nuevoSaldo);
-
-        movimientoRepository.save(movimiento);
+    //Método para que los clientes se suscriban al flujo de datos en tiempo real
+    public Flux<Movimiento> obtenerStreamMovimientos() {
+        return movimientosSink.asFlux();
     }
 }

@@ -1,13 +1,11 @@
+server:
+  port: 8084
+
 spring:
   application:
-    name: cuenta-service
+    name: exchange-rate-mock-service
   config:
     import: "optional:configserver:http://localhost:8888"
-
-  r2dbc:
-    url: r2dbc:postgresql://localhost:5432/novabank_cuentas
-    username: postgres
-    password: "745507"
 
 eureka:
   client:

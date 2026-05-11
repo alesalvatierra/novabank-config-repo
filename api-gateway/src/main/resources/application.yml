@@ -33,6 +33,14 @@ spring:
           filters:
             - JwtAuthenticationFilter
 
+        - id: exchange-rate-mock-service
+          uri: lb://exchange-rate-mock-service
+          predicates:
+              - Path=/api/exchange/**
+          filters:
+              - JwtAuthenticationFilter
+
+
 
 eureka:
   client:

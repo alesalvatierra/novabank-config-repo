@@ -71,6 +71,7 @@
         <module>api-gateway</module>
         <module>auth-server</module>
         <module>operacion-service</module>
+        <module>exchange-rate-mock-service</module>
     </modules>
 
     <dependencyManagement>
