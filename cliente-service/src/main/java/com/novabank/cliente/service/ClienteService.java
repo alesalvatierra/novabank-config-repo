@@ -4,62 +4,41 @@ import com.novabank.cliente.dto.ClienteDTO;
 import com.novabank.cliente.exception.ClienteNotFoundException;
 import com.novabank.cliente.model.Cliente;
 import com.novabank.cliente.repository.ClienteRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
+@RequiredArgsConstructor
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
 
-    //Inyección de dependencias por Spring
-    public ClienteService(ClienteRepository clienteRepository) {
-        this.clienteRepository = clienteRepository;
+    public Flux<ClienteDTO> listarTodos() {
+        return clienteRepository.findAll()
+                .map(this::mapearADto);
     }
 
-    public List<ClienteDTO> obtenerTodos() {
-        return clienteRepository.findAll().stream()
+    public Mono<ClienteDTO> obtenerPorId(Long id) {
+        return clienteRepository.findById(id)
                 .map(this::mapearADto)
-                .collect(Collectors.toList());
+                // Si el repositorio devuelve vacío, lanzamos la excepción reactivamente
+                .switchIfEmpty(Mono.error(new ClienteNotFoundException("Cliente no encontrado con ID: " + id)));
     }
 
-    public ClienteDTO obtenerPorId(Long id) {
-        Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new ClienteNotFoundException("No se ha encontrado el cliente con ID: " + id));
-        return mapearADto(cliente);
+    public Mono<ClienteDTO> crearCliente(ClienteDTO dto) {
+        Cliente entidad = mapearAEntidad(dto);
+        return clienteRepository.save(entidad)
+                .map(this::mapearADto);
     }
 
-    public ClienteDTO obtenerPorDni(String dni) {
-        Cliente cliente = clienteRepository.findByDni(dni)
-                .orElseThrow(() -> new ClienteNotFoundException("No se ha encontrado cliente con DNI: " + dni));
-        return mapearADto(cliente);
+    // Mapeadores
+    private ClienteDTO mapearADto(Cliente c) {
+        return new ClienteDTO(c.getId(), c.getNombre(), c.getDni(), c.getEmail(), c.getTelefono());
     }
 
-    public ClienteDTO crearCliente(ClienteDTO clienteDTO) {
-        Cliente cliente = new Cliente(
-                clienteDTO.getNombre(),
-                clienteDTO.getApellidos(),
-                clienteDTO.getDni(),
-                clienteDTO.getEmail(),
-                clienteDTO.getTelefono()
-        );
-
-        Cliente clienteGuardado = clienteRepository.save(cliente);
-
-        return mapearADto(clienteGuardado);
-    }
-
-    //Método auxiliar privado para no repetir código
-    private ClienteDTO mapearADto(Cliente cliente) {
-        return new ClienteDTO(
-                cliente.getId(),
-                cliente.getNombre(),
-                cliente.getApellidos(),
-                cliente.getDni(),
-                cliente.getEmail(),
-                cliente.getTelefono()
-        );
+    private Cliente mapearAEntidad(ClienteDTO dto) {
+        return new Cliente(dto.getNombre(), dto.getDni(), dto.getEmail(), dto.getTelefono());
     }
 }

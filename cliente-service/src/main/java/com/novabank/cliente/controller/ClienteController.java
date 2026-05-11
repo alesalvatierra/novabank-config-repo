@@ -2,45 +2,35 @@ package com.novabank.cliente.controller;
 
 import com.novabank.cliente.dto.ClienteDTO;
 import com.novabank.cliente.service.ClienteService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/clientes")
+@RequiredArgsConstructor
 public class ClienteController {
 
     private final ClienteService clienteService;
 
-    //Inyectamos el servicio que acabamos de crear
-    public ClienteController(ClienteService clienteService) {
-        this.clienteService = clienteService;
-    }
-
-    //GET /api/clientes
     @GetMapping
-    public ResponseEntity<List<ClienteDTO>> listarClientes() {
-        return ResponseEntity.ok(clienteService.obtenerTodos());
+    public Flux<ClienteDTO> listar() {
+        return clienteService.listarTodos();
     }
 
-    //GET /api/clientes/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<ClienteDTO> obtenerClientePorId(@PathVariable Long id) {
-        return ResponseEntity.ok(clienteService.obtenerPorId(id));
+    public Mono<ResponseEntity<ClienteDTO>> obtener(@PathVariable Long id) {
+        return clienteService.obtenerPorId(id)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    //GET /api/clientes/dni/{dni}
-    @GetMapping("/dni/{dni}")
-    public ResponseEntity<ClienteDTO> obtenerClientePorDni(@PathVariable String dni) {
-        return ResponseEntity.ok(clienteService.obtenerPorDni(dni));
-    }
-
-    //POST /api/clientes
     @PostMapping
-    public ResponseEntity<ClienteDTO> crearCliente(@RequestBody ClienteDTO clienteDTO) {
-        ClienteDTO nuevoCliente = clienteService.crearCliente(clienteDTO);
-        return new ResponseEntity<>(nuevoCliente, HttpStatus.CREATED);
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<ClienteDTO> crear(@RequestBody ClienteDTO dto) {
+        return clienteService.crearCliente(dto);
     }
 }

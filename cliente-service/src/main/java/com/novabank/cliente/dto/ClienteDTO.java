@@ -12,10 +12,9 @@ public class ClienteDTO {
     public ClienteDTO() {}
 
     //Constructor con todos los campos
-    public ClienteDTO(Long id, String nombre, String apellidos, String dni, String email, String telefono) {
+    public ClienteDTO(Long id, String nombre, String dni, String email, String telefono) {
         this.id = id;
         this.nombre = nombre;
-        this.apellidos = apellidos;
         this.dni = dni;
         this.email = email;
         this.telefono = telefono;
@@ -27,9 +26,6 @@ public class ClienteDTO {
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
-
-    public String getApellidos() { return apellidos; }
-    public void setApellidos(String apellidos) { this.apellidos = apellidos; }
 
     public String getDni() { return dni; }
     public void setDni(String dni) { this.dni = dni; }
