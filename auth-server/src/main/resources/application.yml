@@ -12,6 +12,5 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-#Clave para firmar los JWT
 jwt:
   secret: "NovaBankSecretKeyAlejandroLopezSalvatierraRuiz1234567890"

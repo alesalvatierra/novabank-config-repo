@@ -18,13 +18,14 @@ public class JwtProvider {
 
     public String createToken(String username) {
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+
         Date now = new Date();
-        Date validity = new Date(now.getTime() + 3600000); // 1 hora de validez
+        Date expiration = new Date(now.getTime() + 3600000);
 
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(now)
-                .setExpiration(validity)
+                .setExpiration(expiration)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }

@@ -12,6 +12,11 @@ spring:
         locator:
           enabled: true
       routes:
+        - id: auth-server
+          uri: lb://auth-server
+          predicates:
+            - Path=/auth/**
+
         - id: cliente-service
           uri: lb://cliente-service
           predicates:
@@ -36,11 +41,9 @@ spring:
         - id: exchange-rate-mock-service
           uri: lb://exchange-rate-mock-service
           predicates:
-              - Path=/api/exchange/**
+            - Path=/api/exchange/**
           filters:
-              - JwtAuthenticationFilter
-
-
+            - JwtAuthenticationFilter
 
 eureka:
   client:

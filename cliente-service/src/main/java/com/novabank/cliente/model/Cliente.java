@@ -4,7 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -16,11 +19,11 @@ public class Cliente {
     private Long id;
 
     private String nombre;
-    private String apellido;
+    private String apellidos;
     private String dni;
     private String email;
     private String telefono;
 
-    public Cliente(String nombre, String dni, String email, String telefono) {
-    }
+    @Column("fecha_creacion")
+    private LocalDateTime fechaCreacion;
 }

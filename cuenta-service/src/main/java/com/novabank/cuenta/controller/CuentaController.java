@@ -38,7 +38,6 @@ public class CuentaController {
         return cuentaService.registrarMovimiento(movimiento);
     }
 
-    //ENDPOINT DE STREAMING
     @GetMapping(value = "/movimientos/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<Movimiento> verMovimientosEnDirecto() {
         return cuentaService.obtenerStreamMovimientos();

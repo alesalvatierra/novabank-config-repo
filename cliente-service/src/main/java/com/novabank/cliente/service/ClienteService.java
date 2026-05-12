@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class ClienteService {
@@ -22,9 +24,8 @@ public class ClienteService {
 
     public Mono<ClienteDTO> obtenerPorId(Long id) {
         return clienteRepository.findById(id)
-                .map(this::mapearADto)
-                // Si el repositorio devuelve vacío, lanzamos la excepción reactivamente
-                .switchIfEmpty(Mono.error(new ClienteNotFoundException("Cliente no encontrado con ID: " + id)));
+                .switchIfEmpty(Mono.error(new ClienteNotFoundException("Cliente no encontrado con ID: " + id)))
+                .map(this::mapearADto);
     }
 
     public Mono<ClienteDTO> crearCliente(ClienteDTO dto) {
@@ -33,12 +34,27 @@ public class ClienteService {
                 .map(this::mapearADto);
     }
 
-    // Mapeadores
-    private ClienteDTO mapearADto(Cliente c) {
-        return new ClienteDTO(c.getId(), c.getNombre(), c.getDni(), c.getEmail(), c.getTelefono());
+    private ClienteDTO mapearADto(Cliente cliente) {
+        return new ClienteDTO(
+                cliente.getId(),
+                cliente.getNombre(),
+                cliente.getApellidos(),
+                cliente.getDni(),
+                cliente.getEmail(),
+                cliente.getTelefono(),
+                cliente.getFechaCreacion()
+        );
     }
 
     private Cliente mapearAEntidad(ClienteDTO dto) {
-        return new Cliente(dto.getNombre(), dto.getDni(), dto.getEmail(), dto.getTelefono());
+        return new Cliente(
+                null,
+                dto.getNombre(),
+                dto.getApellidos(),
+                dto.getDni(),
+                dto.getEmail(),
+                dto.getTelefono(),
+                dto.getFechaCreacion() != null ? dto.getFechaCreacion() : LocalDateTime.now()
+        );
     }
 }

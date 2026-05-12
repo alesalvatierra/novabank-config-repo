@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
@@ -29,43 +29,41 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
 
-            //Comprobamos si la petición tiene la cabecera "Authorization"
-            if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                return onError(exchange, "Falta cabecera de autorización", HttpStatus.UNAUTHORIZED);
+            List<String> authHeaders = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
+
+            if (authHeaders == null || authHeaders.isEmpty()) {
+                return onError(exchange, HttpStatus.UNAUTHORIZED);
             }
 
-            String authHeader = Objects.requireNonNull(exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION)).get(0);
+            String authHeader = authHeaders.get(0);
 
-            //Comprobamos que empiece por "Bearer"
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return onError(exchange, "Formato de token inválido", HttpStatus.UNAUTHORIZED);
+            if (!authHeader.startsWith("Bearer ")) {
+                return onError(exchange, HttpStatus.UNAUTHORIZED);
             }
 
             String token = authHeader.substring(7);
 
-            //Validamos el token contra nuestra clave secreta
             try {
                 SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+
                 Jwts.parserBuilder()
                         .setSigningKey(key)
                         .build()
                         .parseClaimsJws(token);
 
             } catch (Exception e) {
-                return onError(exchange, "Token inválido o expirado", HttpStatus.UNAUTHORIZED);
+                return onError(exchange, HttpStatus.UNAUTHORIZED);
             }
 
-            // Si todo es correcto, dejamos que la petición continúe hacia el microservicio
             return chain.filter(exchange);
         };
     }
 
-    private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
-        exchange.getResponse().setStatusCode(httpStatus);
+    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status) {
+        exchange.getResponse().setStatusCode(status);
         return exchange.getResponse().setComplete();
     }
 
     public static class Config {
-
     }
 }

@@ -1,26 +1,33 @@
 package com.novabank.operacion.model;
 
-import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
 import java.time.LocalDateTime;
 
-@Entity
+@Table("operacion")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Operacion {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column("cuenta_origen_id")
     private Long cuentaOrigenId;
+
+    @Column("cuenta_destino_id")
     private Long cuentaDestinoId;
 
     private Double monto;
 
-    private LocalDateTime fechaOperacion;
+    private String descripcion;
 
-    @PrePersist
-    protected void onCreate() {
-        fechaOperacion = LocalDateTime.now();
-    }
+    @Column("fecha_operacion")
+    private LocalDateTime fechaOperacion;
 }

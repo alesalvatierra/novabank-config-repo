@@ -1,8 +1,17 @@
+server:
+  port: 8084
+
 spring:
   application:
     name: operacion-service
   config:
     import: "optional:configserver:http://localhost:8888"
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/novabank_operaciones
+    username: postgres
+    password: "745507"
+    pool:
+      enabled: true
 
 eureka:
   client:

@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class CuentaDTO {
+
     private Long id;
     private String numeroCuenta;
     private Double saldo;

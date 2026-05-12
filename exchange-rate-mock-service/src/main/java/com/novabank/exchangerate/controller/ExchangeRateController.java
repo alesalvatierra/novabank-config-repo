@@ -18,7 +18,6 @@ public class ExchangeRateController {
             @RequestParam(defaultValue = "USD") String from,
             @RequestParam(defaultValue = "EUR") String to) {
 
-
         ExchangeRateResponse response = new ExchangeRateResponse(from, to, 0.92);
 
         return Mono.just(response)

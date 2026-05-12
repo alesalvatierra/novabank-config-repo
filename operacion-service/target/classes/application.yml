@@ -4,6 +4,11 @@ spring:
   config:
     import: "optional:configserver:http://localhost:8888"
 
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/novabank_operaciones
+    username: postgres
+    password: "745507"
+
 eureka:
   client:
     service-url:
