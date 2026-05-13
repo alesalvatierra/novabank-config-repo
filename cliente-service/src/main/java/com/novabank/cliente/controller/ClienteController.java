@@ -24,8 +24,7 @@ public class ClienteController {
     @GetMapping("/{id}")
     public Mono<ResponseEntity<ClienteDTO>> obtener(@PathVariable Long id) {
         return clienteService.obtenerPorId(id)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok);
     }
 
     @PostMapping
