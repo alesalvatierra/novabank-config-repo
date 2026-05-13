@@ -1,7 +1,7 @@
 package com.novabank.operacion.service;
 
 import com.novabank.operacion.client.CuentaClient;
-import com.novabank.operacion.dto.CuentaDTO;
+import com.novabank.operacion.dto.MovimientoDTO;
 import com.novabank.operacion.model.Operacion;
 import com.novabank.operacion.repository.OperacionRepository;
 import org.junit.jupiter.api.Test;
@@ -30,12 +30,12 @@ public class OperacionServiceTest {
     public void testRealizarTransferencia_Exito() {
 
         // Simulamos la cuenta origen con 1000€
-        CuentaDTO cuentaOrigen = new CuentaDTO();
+        MovimientoDTO cuentaOrigen = new MovimientoDTO();
         cuentaOrigen.setId(1L);
         cuentaOrigen.setSaldo(1000.0);
 
         // Simulamos la cuenta destino con 500€
-        CuentaDTO cuentaDestino = new CuentaDTO();
+        MovimientoDTO cuentaDestino = new MovimientoDTO();
         cuentaDestino.setId(2L);
         cuentaDestino.setSaldo(500.0);
 
@@ -62,11 +62,11 @@ public class OperacionServiceTest {
     public void testRealizarTransferencia_SaldoInsuficiente() {
         // 1. PREPARACIÓN
         // Simulamos la cuenta origen con solo 50€
-        CuentaDTO cuentaOrigen = new CuentaDTO();
+        MovimientoDTO cuentaOrigen = new MovimientoDTO();
         cuentaOrigen.setId(1L);
         cuentaOrigen.setSaldo(50.0);
 
-        CuentaDTO cuentaDestino = new CuentaDTO();
+        MovimientoDTO cuentaDestino = new MovimientoDTO();
         cuentaDestino.setId(2L);
         cuentaDestino.setSaldo(500.0);
 

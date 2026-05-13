@@ -2,6 +2,7 @@ package com.novabank.cliente.controller;
 
 import com.novabank.cliente.dto.ClienteDTO;
 import com.novabank.cliente.service.ClienteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ public class ClienteController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<ClienteDTO> crear(@RequestBody ClienteDTO dto) {
+    public Mono<ClienteDTO> crear(@Valid @RequestBody ClienteDTO dto) {
         return clienteService.crearCliente(dto);
     }
 }

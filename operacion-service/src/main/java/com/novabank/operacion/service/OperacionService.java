@@ -2,7 +2,7 @@ package com.novabank.operacion.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.novabank.operacion.dto.CuentaDTO;
+import com.novabank.operacion.dto.MovimientoDTO;
 import com.novabank.operacion.dto.ExchangeRateResponse;
 import com.novabank.operacion.model.Operacion;
 import com.novabank.operacion.repository.OperacionRepository;
@@ -30,10 +30,10 @@ public class OperacionService {
 
     public Mono<Operacion> realizarTransferencia(Long origenId, Long destinoId, Double montoUsd) {
 
-        Mono<CuentaDTO> cuentaMono = webClient.get()
+        Mono<MovimientoDTO> cuentaMono = webClient.get()
                 .uri("http://cuenta-service/api/cuentas/{id}", origenId)
                 .retrieve()
-                .bodyToMono(CuentaDTO.class);
+                .bodyToMono(MovimientoDTO.class);
 
         Mono<Double> rateMono = webClient.get()
                 .uri("http://exchange-rate-mock-service/api/exchange/rate?from=USD&to=EUR")
@@ -54,7 +54,7 @@ public class OperacionService {
 
         return Mono.zip(cuentaMono, rateMono)
                 .flatMap(tupla -> {
-                    CuentaDTO cuenta = tupla.getT1();
+                    MovimientoDTO cuenta = tupla.getT1();
                     Double rate = tupla.getT2();
 
                     Double montoEur = montoUsd * rate;

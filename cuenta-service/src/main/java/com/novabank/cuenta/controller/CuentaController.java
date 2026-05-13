@@ -1,8 +1,10 @@
 package com.novabank.cuenta.controller;
 
+import com.novabank.cuenta.dto.CuentaDTO;
 import com.novabank.cuenta.model.Cuenta;
 import com.novabank.cuenta.model.Movimiento;
 import com.novabank.cuenta.service.CuentaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,8 +21,8 @@ public class CuentaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<Cuenta> crear(@RequestBody Cuenta cuenta) {
-        return cuentaService.crearCuenta(cuenta);
+    public Mono<CuentaDTO> crear(@Valid @RequestBody CuentaDTO dto) {
+        return cuentaService.crearCuenta(dto);
     }
 
     @GetMapping("/{id}")

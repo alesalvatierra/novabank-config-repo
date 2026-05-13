@@ -1,9 +1,11 @@
 package com.novabank.cuenta.service;
 
+import com.novabank.cuenta.dto.CuentaDTO;
 import com.novabank.cuenta.model.Cuenta;
 import com.novabank.cuenta.model.Movimiento;
 import com.novabank.cuenta.repository.CuentaRepository;
 import com.novabank.cuenta.repository.MovimientoRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -30,22 +32,25 @@ public class CuentaService {
         this.movimientosSink = Sinks.many().multicast().onBackpressureBuffer();
     }
 
-    public Mono<Cuenta> crearCuenta(Cuenta cuenta) {
-        return webClient.get()
-                .uri("http://cliente-service/api/clientes/{id}", cuenta.getClienteId())
-                .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError,
-                        response -> Mono.error(new IllegalArgumentException("El cliente no existe")))
-                .bodyToMono(Object.class)
-                .flatMap(cliente -> {
-                    if (cuenta.getSaldo() == null) {
-                        cuenta.setSaldo(0.0);
-                    }
-                    if (cuenta.getEstado() == null) {
-                        cuenta.setEstado(true);
-                    }
-                    return cuentaRepository.save(cuenta);
-                });
+    public Mono<CuentaDTO> crearCuenta(CuentaDTO dto) {
+        Cuenta cuenta = new Cuenta();
+        cuenta.setNumeroCuenta(dto.getNumeroCuenta());
+        cuenta.setSaldo(dto.getSaldo());
+        cuenta.setEstado(dto.getEstado());
+        cuenta.setClienteId(dto.getClienteId());
+
+        return cuentaRepository.save(cuenta)
+                .map(this::mapearADto);
+    }
+
+    private CuentaDTO mapearADto(Cuenta cuenta) {
+        return new CuentaDTO(
+                cuenta.getId(),
+                cuenta.getNumeroCuenta(),
+                cuenta.getSaldo(),
+                cuenta.getEstado(),
+                cuenta.getClienteId()
+        );
     }
 
     public Mono<Cuenta> obtenerCuenta(Long id) {
