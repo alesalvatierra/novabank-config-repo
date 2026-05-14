@@ -1,10 +1,10 @@
 # 🏦 NovaBank
 
-> Sistema de gestión bancaria basado en una **Arquitectura de Microservicios Síncronos** desarrollada con Spring Boot y Spring Cloud.
+> Sistema de gestión bancaria basado en una **Arquitectura de Microservicios Reactivos** desarrollada con Spring Boot y Spring Cloud.
 
-NovaBank fragmenta toda la lógica de negocio en dominios independientes (Clientes, Cuentas y Operaciones), garantizando la persistencia de datos aislada en PostgreSQL para evitar el acoplamiento entre servicios.
+NovaBank fragmenta la lógica de negocio en dominios independientes (`Clientes`, `Cuentas` y `Operaciones`), garantizando la persistencia aislada en PostgreSQL para evitar acoplamiento entre servicios.
 
-La arquitectura incluye descubrimiento de servicios dinámico, configuración centralizada, enrutamiento a través de un API Gateway y un servidor de autorización independiente para blindar las comunicaciones mediante seguridad OAuth2/JWT. Además, implementa tolerancia a fallos con el patrón Circuit Breaker.
+La arquitectura incluye descubrimiento dinámico de servicios, configuración centralizada, enrutamiento a través de un API Gateway y un servidor de autenticación independiente para proteger las comunicaciones mediante JWT. Además, incorpora tolerancia a fallos con **Resilience4j**, reintentos, fallback y **caché en memoria** para el servicio de tipos de cambio.
 
 ---
 
@@ -14,26 +14,28 @@ La arquitectura incluye descubrimiento de servicios dinámico, configuración ce
 |---|---|
 | **Java 17** | Lenguaje principal del proyecto |
 | **Spring Boot 3** | Framework base para la creación de los microservicios |
+| **Spring WebFlux** | Programación reactiva no bloqueante |
+| **Spring Data R2DBC** | Persistencia reactiva sobre PostgreSQL |
 | **Spring Cloud (Eureka & Config)** | Descubrimiento de servicios y configuración externalizada |
 | **Spring Cloud Gateway** | Punto único de entrada y enrutamiento dinámico |
-| **Spring Cloud OpenFeign** | Comunicación síncrona declarativa entre microservicios |
-| **Resilience4j** | Implementación de resiliencia (Circuit Breaker y Fallbacks) |
+| **WebClient** | Comunicación reactiva entre microservicios |
+| **Resilience4j** | Implementación de resiliencia con Circuit Breaker, Retry y Fallback |
+| **Caffeine Cache** | Caché en memoria para almacenar tasas de cambio |
 | **Spring Security & JWT** | Autenticación distribuida y protección de endpoints en el Gateway |
-| **Spring Data JPA / Hibernate** | ORM para el mapeo de entidades en bases de datos aisladas |
 | **PostgreSQL** | Motor de base de datos relacional para la persistencia |
-| **JUnit 5 & Mockito** | Frameworks para pruebas unitarias |
+| **JUnit 5, Mockito y Reactor Test** | Frameworks para pruebas unitarias reactivas |
 | **Maven** | Gestión de dependencias y construcción multi-módulo |
 
 ---
 
 ## ✅ Requisitos del Sistema
 
-Para compilar y ejecutar este proyecto distribuido en un entorno local es estrictamente necesario tener instalados:
+Para compilar y ejecutar este proyecto distribuido en un entorno local es necesario tener instalados:
 
 - **Java:** JDK 17 o superior
 - **Maven:** 3.8 o superior
-- **PostgreSQL:** Instalado y en ejecución en el puerto `5432`
-- **Git:** Necesario para que el Config Server lea el repositorio de propiedades locales
+- **PostgreSQL:** instalado y en ejecución en el puerto `5432`
+- **Git:** necesario para que el Config Server lea el repositorio de propiedades
 
 ---
 
@@ -47,16 +49,19 @@ La configuración de la base de datos y de las aplicaciones está centralizada y
 | **Config Server** | http://localhost:8888 |
 | **Auth Server** | http://localhost:9000 |
 | **API Gateway** | http://localhost:8080 *(punto de entrada único)* |
-| **Microservicios de negocio** | Puertos dinámicos (ej. 8081, 8082, 8083) |
+| **Cliente Service** | http://localhost:8081 |
+| **Cuenta Service** | http://localhost:8082 |
+| **Operacion Service** | http://localhost:8083 |
+| **Exchange Rate Mock Service** | http://localhost:8085 |
 
 ### Diagrama de Flujo
 
-```
+```text
 [ API Gateway — Puerto 8080 ]
-        Enruta peticiones y valida Tokens JWT
+        Enruta peticiones y valida tokens JWT
                        ⬇
 [ Auth Server — Puerto 9000 ]
-        Emite los Tokens JWT (Provider)
+        Emite los tokens JWT
                        ⬇
 [ Infraestructura Spring Cloud ]
         Eureka (Descubrimiento) + Config Server (Propiedades)
@@ -64,9 +69,12 @@ La configuración de la base de datos y de las aplicaciones está centralizada y
 [ Microservicios de Negocio ]
         Cliente-Service · Cuenta-Service · Operacion-Service
                        ⬇
+[ Servicio Externo Mock ]
+        Exchange-Rate-Mock-Service
+                       ⬇
 [ Bases de Datos Aisladas ]
-        Múltiples esquemas PostgreSQL por dominio
-```
+        Múltiples bases PostgreSQL por dominio
+````
 
 ---
 
@@ -88,8 +96,12 @@ Arranca los servicios en este orden exacto para garantizar una comunicación cor
 
 1. `EurekaServerApplication` — Espera a que arranque completamente
 2. `ConfigServerApplication` — Espera a que arranque completamente
-3. `ApiGatewayApplication` y `AuthServerApplication` — Pueden arrancar en paralelo
-4. Servicios de negocio: `ClienteServiceApplication`, `CuentaServiceApplication`, `OperacionServiceApplication`
+3. `AuthServerApplication`
+4. `ClienteServiceApplication`
+5. `CuentaServiceApplication`
+6. `OperacionServiceApplication`
+7. `ExchangeRateMockServiceApplication`
+8. `ApiGatewayApplication`
 
 ### 3. Ejecutar las pruebas unitarias
 
@@ -101,27 +113,64 @@ mvn test
 
 ## 🔐 Pruebas Manuales con Postman
 
-Dado que la arquitectura está protegida por el Gateway, el flujo de pruebas debe realizarse autenticándose previamente:
+Dado que la arquitectura está protegida por el Gateway, el flujo de pruebas debe realizarse autenticándose previamente.
 
-**Paso 1 — Obtener el Token JWT:**
+**Paso 1 — Obtener el token JWT:**
 
-```
+```http
 POST http://localhost:9000/auth/login?username=admin&password=admin
 ```
 
-**Paso 2 — Copiar el token** alfanumérico devuelto en la respuesta.
+**Paso 2 — Copiar el token** devuelto en la respuesta.
 
 **Paso 3 — Hacer peticiones al Gateway:**
 
 Dirígete a cualquier endpoint de negocio a través del Gateway, por ejemplo:
 
-```
+```http
 POST http://localhost:8080/api/clientes
 ```
 
 **Paso 4 — Autorizar en Postman:**
 
-En la pestaña **Authorization**, selecciona el tipo **Bearer Token** y pega el token copiado. ¡Ya puedes operar sobre toda la red de microservicios!
+En la pestaña **Authorization**, selecciona el tipo **Bearer Token** y pega el token copiado.
+
+---
+
+## 📡 Endpoints principales
+
+### Auth Server
+```http
+POST /auth/login
+```
+
+### Cliente Service
+```http
+GET /api/clientes
+GET /api/clientes/{id}
+POST /api/clientes
+```
+
+### Cuenta Service
+```http
+GET /api/cuentas/{id}
+POST /api/cuentas
+PUT /api/cuentas/{id}/saldo?monto=...
+POST /api/cuentas/movimientos
+GET /api/cuentas/movimientos/stream
+```
+
+### Operacion Service
+```http
+POST /api/operaciones
+GET /api/operaciones/{id}
+GET /api/operaciones
+```
+
+### Exchange Rate Mock Service
+```http
+GET /api/exchange/rate?from=USD&to=EUR
+```
 
 ---
 
@@ -130,27 +179,58 @@ En la pestaña **Authorization**, selecciona el tipo **Bearer Token** y pega el 
 | Patrón | Descripción |
 |---|---|
 | **API Gateway** | Actúa como fachada única del sistema, ocultando la topología de red interna y centralizando la validación de seguridad |
-| **Service Discovery** | Permite que los microservicios se encuentren dinámicamente mediante nombres lógicos (Eureka) sin usar IPs fijas |
-| **Circuit Breaker** | Implementado con Resilience4j para evitar caídas en cascada si un servicio dependiente deja de responder, ejecutando un plan de Fallback |
-| **DTO (Data Transfer Object)** | Encapsula los datos enviados entre el cliente y el servidor, y entre los propios microservicios (Feign), aislando las entidades JPA reales |
+| **Service Discovery** | Permite que los microservicios se encuentren dinámicamente mediante nombres lógicos en Eureka |
+| **Circuit Breaker** | Implementado con Resilience4j para evitar caídas en cascada si un servicio dependiente deja de responder |
+| **Retry** | Reintenta automáticamente llamadas fallidas al servicio de divisas |
+| **Fallback** | Recupera una respuesta alternativa cuando el servicio de divisas no está disponible |
+| **DTO (Data Transfer Object)** | Encapsula los datos enviados entre cliente y servidor, aislando las entidades reales |
+| **Programación Reactiva** | Uso de `Mono` y `Flux` para flujos no bloqueantes entre servicios |
+
+---
+
+## ♻️ Resiliencia
+
+En `operacion-service` se ha implementado tolerancia a fallos sobre la llamada al microservicio de tipos de cambio:
+
+- **Circuit Breaker**
+- **Retry**
+- **Fallback**
+- **Caché con Caffeine**
+
+Si `exchange-rate-mock-service` no responde, el sistema intenta recuperar la última tasa válida almacenada en caché para no interrumpir completamente el flujo de transferencias.
 
 ---
 
 ## 📁 Estructura del Proyecto (Multi-módulo)
 
-```
+```text
 NovaBank/
-├── eureka-server        # Servidor de descubrimiento de Netflix
-├── config-server        # Configuración centralizada conectada a Git
-├── api-gateway          # Enrutador dinámico y filtro de seguridad JWT
-├── auth-server          # Microservicio independiente de control de acceso
-├── cliente-service      # Bounded Context para la gestión de usuarios
-├── cuenta-service       # Bounded Context con resiliencia para saldos y movimientos
-└── operacion-service    # Bounded Context orquestador de transacciones (OpenFeign)
+├── eureka-server                # Servidor de descubrimiento de servicios
+├── config-server                # Configuración centralizada conectada a Git
+├── api-gateway                  # Enrutador dinámico y filtro de seguridad JWT
+├── auth-server                  # Microservicio de autenticación
+├── cliente-service              # Gestión reactiva de clientes
+├── cuenta-service               # Gestión reactiva de cuentas y movimientos
+├── operacion-service            # Orquestación reactiva de transferencias
+└── exchange-rate-mock-service   # Mock reactivo de tipos de cambio
 ```
 
 ---
 
-## 🔗 Repositorio
+## 🧪 Pruebas
 
-📌 [https://github.com/alesalvatierra/novabank-config-repo.git](https://github.com/alesalvatierra/NovaBank.git)
+El proyecto incluye pruebas unitarias sobre la lógica de servicio utilizando:
+
+- **JUnit 5**
+- **Mockito**
+- **Reactor Test**
+- **StepVerifier**
+
+Estas pruebas permiten validar comportamiento reactivo, repositorios simulados y control de errores.
+
+---
+
+## 🔗 Repositorios
+
+📌 **Repositorio principal / configuración utilizada en el proyecto:**  
+[https://github.com/alesalvatierra/novabank-config-repo.git](https://github.com/alesalvatierra/novabank-config-repo.git)

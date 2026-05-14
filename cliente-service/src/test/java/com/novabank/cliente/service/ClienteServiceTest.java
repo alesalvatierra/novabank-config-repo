@@ -9,15 +9,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
-import java.util.Optional;
+import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class ClienteServiceTest {
+class ClienteServiceTest {
 
     @Mock
     private ClienteRepository clienteRepository;
@@ -26,40 +28,119 @@ public class ClienteServiceTest {
     private ClienteService clienteService;
 
     @Test
-    public void testCrearCliente_Exito() {
+    void listarTodos_deberiaRetornarFluxDeClientes() {
+        Cliente cliente1 = new Cliente(
+                1L,
+                "Ana",
+                "Lopez",
+                "12345678A",
+                "ana@test.com",
+                "600111222",
+                LocalDateTime.now()
+        );
 
-        // Preparamos el DTO que viene desde Postman
-        ClienteDTO nuevoClienteDTO = new ClienteDTO(null, "Ana", "García", "12345678A", "ana@novabank.com", "600123456");
+        Cliente cliente2 = new Cliente(
+                2L,
+                "Luis",
+                "Perez",
+                "87654321B",
+                "luis@test.com",
+                "600333444",
+                LocalDateTime.now()
+        );
 
-        // Preparamos la Entidad que simula devolver la base de datos (ya con el ID 1L asignado)
-        Cliente clienteGuardado = new Cliente("Ana", "García", "12345678A", "ana@novabank.com", "600123456");
-        clienteGuardado.setId(1L);
+        when(clienteRepository.findAll()).thenReturn(Flux.just(cliente1, cliente2));
 
-        // Simulamos el guardado
-        when(clienteRepository.save(any(Cliente.class))).thenReturn(clienteGuardado);
-
-
-        // Llamamos al método, pasándole y recibiendo un DTO
-        ClienteDTO resultado = clienteService.crearCliente(nuevoClienteDTO);
-
-        assertNotNull(resultado);
-        assertEquals(1L, resultado.getId()); // Comprobamos que el ID se ha mapeado bien
-        assertEquals("Ana", resultado.getNombre());
-        verify(clienteRepository, times(1)).save(any(Cliente.class));
+        StepVerifier.create(clienteService.listarTodos())
+                .expectNextMatches(dto ->
+                        dto.getId().equals(1L) &&
+                                dto.getNombre().equals("Ana") &&
+                                dto.getApellidos().equals("Lopez") &&
+                                dto.getDni().equals("12345678A") &&
+                                dto.getEmail().equals("ana@test.com") &&
+                                dto.getTelefono().equals("600111222")
+                )
+                .expectNextMatches(dto ->
+                        dto.getId().equals(2L) &&
+                                dto.getNombre().equals("Luis") &&
+                                dto.getApellidos().equals("Perez") &&
+                                dto.getDni().equals("87654321B") &&
+                                dto.getEmail().equals("luis@test.com") &&
+                                dto.getTelefono().equals("600333444")
+                )
+                .verifyComplete();
     }
 
     @Test
-    public void testObtenerPorId_NoEncontrado_LanzaExcepcion() {
-        //Simulamos que la BD no encuentra el ID 99
-        when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
+    void obtenerPorId_deberiaRetornarClienteSiExiste() {
+        Cliente cliente = new Cliente(
+                1L,
+                "Ana",
+                "Lopez",
+                "12345678A",
+                "ana@test.com",
+                "600111222",
+                LocalDateTime.now()
+        );
 
+        when(clienteRepository.findById(1L)).thenReturn(Mono.just(cliente));
 
-        // Comprobamos que llama al método obtenerPorId y salta la excepción
-        assertThrows(ClienteNotFoundException.class, () -> {
-            clienteService.obtenerPorId(99L);
-        });
+        StepVerifier.create(clienteService.obtenerPorId(1L))
+                .expectNextMatches(dto ->
+                        dto.getId().equals(1L) &&
+                                dto.getNombre().equals("Ana") &&
+                                dto.getApellidos().equals("Lopez") &&
+                                dto.getDni().equals("12345678A") &&
+                                dto.getEmail().equals("ana@test.com") &&
+                                dto.getTelefono().equals("600111222")
+                )
+                .verifyComplete();
+    }
 
-        // Verificamos que se llamó a la base de datos
-        verify(clienteRepository, times(1)).findById(99L);
+    @Test
+    void obtenerPorId_deberiaDarErrorSiNoExiste() {
+        when(clienteRepository.findById(99L)).thenReturn(Mono.empty());
+
+        StepVerifier.create(clienteService.obtenerPorId(99L))
+                .expectErrorMatches(error ->
+                        error instanceof ClienteNotFoundException &&
+                                error.getMessage().equals("Cliente no encontrado con ID: 99")
+                )
+                .verify();
+    }
+
+    @Test
+    void crearCliente_deberiaGuardarYRetornarDto() {
+        ClienteDTO dtoEntrada = new ClienteDTO(
+                null,
+                "Ana",
+                "Lopez",
+                "12345678A",
+                "ana@test.com",
+                "600111222"
+        );
+
+        Cliente clienteGuardado = new Cliente(
+                1L,
+                "Ana",
+                "Lopez",
+                "12345678A",
+                "ana@test.com",
+                "600111222",
+                LocalDateTime.now()
+        );
+
+        when(clienteRepository.save(any(Cliente.class))).thenReturn(Mono.just(clienteGuardado));
+
+        StepVerifier.create(clienteService.crearCliente(dtoEntrada))
+                .expectNextMatches(dto ->
+                        dto.getId().equals(1L) &&
+                                dto.getNombre().equals("Ana") &&
+                                dto.getApellidos().equals("Lopez") &&
+                                dto.getDni().equals("12345678A") &&
+                                dto.getEmail().equals("ana@test.com") &&
+                                dto.getTelefono().equals("600111222")
+                )
+                .verifyComplete();
     }
 }

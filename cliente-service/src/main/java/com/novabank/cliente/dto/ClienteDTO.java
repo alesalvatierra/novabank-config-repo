@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,4 +32,7 @@ public class ClienteDTO {
 
     @NotBlank(message = "El teléfono es obligatorio")
     private String telefono;
+
+    public ClienteDTO(Long id, String nombre, String apellidos, String dni, String email, String telefono, LocalDateTime fechaCreacion) {
+    }
 }

@@ -104,4 +104,9 @@ public class OperacionService {
                 "Servicio de divisas no disponible y no hay tasa en caché para " + from + " a " + to
         ));
     }
+
+    void guardarTipoCambioEnCache(String from, String to, Double rate) {
+        rateCache.put(from + "_" + to, rate);
+    }
+
 }

@@ -41,8 +41,7 @@ public class ClienteService {
                 cliente.getApellidos(),
                 cliente.getDni(),
                 cliente.getEmail(),
-                cliente.getTelefono(),
-                cliente.getFechaCreacion()
+                cliente.getTelefono()
         );
     }
 
@@ -54,7 +53,7 @@ public class ClienteService {
                 dto.getDni(),
                 dto.getEmail(),
                 dto.getTelefono(),
-                dto.getFechaCreacion() != null ? dto.getFechaCreacion() : LocalDateTime.now()
+                LocalDateTime.now()
         );
     }
 }
