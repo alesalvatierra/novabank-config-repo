@@ -1,7 +1,6 @@
 package com.novabank.operacion.service;
 
 import com.novabank.operacion.client.CuentaClient;
-import com.novabank.operacion.dto.MovimientoDTO;
 import com.novabank.operacion.model.Operacion;
 import com.novabank.operacion.repository.OperacionRepository;
 import org.junit.jupiter.api.Test;

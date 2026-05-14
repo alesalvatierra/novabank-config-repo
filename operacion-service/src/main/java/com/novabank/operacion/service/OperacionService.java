@@ -2,10 +2,12 @@ package com.novabank.operacion.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.novabank.operacion.dto.MovimientoDTO;
+import com.novabank.operacion.dto.CuentaDTO;
 import com.novabank.operacion.dto.ExchangeRateResponse;
 import com.novabank.operacion.model.Operacion;
 import com.novabank.operacion.repository.OperacionRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -30,31 +32,16 @@ public class OperacionService {
 
     public Mono<Operacion> realizarTransferencia(Long origenId, Long destinoId, Double montoUsd) {
 
-        Mono<MovimientoDTO> cuentaMono = webClient.get()
+        Mono<CuentaDTO> cuentaMono = webClient.get()
                 .uri("http://cuenta-service/api/cuentas/{id}", origenId)
                 .retrieve()
-                .bodyToMono(MovimientoDTO.class);
+                .bodyToMono(CuentaDTO.class);
 
-        Mono<Double> rateMono = webClient.get()
-                .uri("http://exchange-rate-mock-service/api/exchange/rate?from=USD&to=EUR")
-                .retrieve()
-                .bodyToMono(ExchangeRateResponse.class)
-                .map(response -> {
-                    Double rate = response.getRate();
-                    rateCache.put("USD_EUR", rate);
-                    return rate;
-                })
-                .onErrorResume(error -> {
-                    Double cachedRate = rateCache.getIfPresent("USD_EUR");
-                    if (cachedRate != null) {
-                        return Mono.just(cachedRate);
-                    }
-                    return Mono.error(new RuntimeException("Servicio de divisas caído y caché vacía"));
-                });
+        Mono<Double> rateMono = obtenerTipoCambio("USD", "EUR");
 
         return Mono.zip(cuentaMono, rateMono)
                 .flatMap(tupla -> {
-                    MovimientoDTO cuenta = tupla.getT1();
+                    CuentaDTO cuenta = tupla.getT1();
                     Double rate = tupla.getT2();
 
                     Double montoEur = montoUsd * rate;
@@ -92,5 +79,29 @@ public class OperacionService {
                     return Mono.when(retirar, ingresar)
                             .then(operacionRepository.save(operacion));
                 });
+    }
+
+    @CircuitBreaker(name = "exchangeRateService", fallbackMethod = "fallbackTipoCambio")
+    @Retry(name = "exchangeRateService")
+    public Mono<Double> obtenerTipoCambio(String from, String to) {
+        return webClient.get()
+                .uri("http://exchange-rate-mock-service/api/exchange/rate?from={from}&to={to}", from, to)
+                .retrieve()
+                .bodyToMono(ExchangeRateResponse.class)
+                .map(response -> {
+                    Double rate = response.getRate();
+                    rateCache.put(from + "_" + to, rate);
+                    return rate;
+                });
+    }
+
+    public Mono<Double> fallbackTipoCambio(String from, String to, Throwable ex) {
+        Double cachedRate = rateCache.getIfPresent(from + "_" + to);
+        if (cachedRate != null) {
+            return Mono.just(cachedRate);
+        }
+        return Mono.error(new RuntimeException(
+                "Servicio de divisas no disponible y no hay tasa en caché para " + from + " a " + to
+        ));
     }
 }
